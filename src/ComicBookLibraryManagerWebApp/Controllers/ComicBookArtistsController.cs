@@ -2,6 +2,9 @@
 using ComicBookShared.Models;
 using System.Net;
 using System.Web.Mvc;
+using System.Data.Entity;
+using ComicBookShared.Data;
+using System.Linq;
 
 namespace ComicBookLibraryManagerWebApp.Controllers
 {
@@ -10,11 +13,21 @@ namespace ComicBookLibraryManagerWebApp.Controllers
     /// </summary>
     public class ComicBookArtistsController : Controller
     {
+        private Context _context = null;
+
+        public ComicBookArtistsController()
+        {
+            _context = new Context();
+        }
+
         public ActionResult Add(int comicBookId)
         {
-            // TODO Get the comic book.
-            // Include the "Series" navigation property.
-            var comicBook = new ComicBook();
+            var comicBook = _context.ComicBooks
+                    .Include(cb => cb.Series)
+                    .Include(cb => cb.Artists.Select(a => a.Artist))
+                    .Include(cb => cb.Artists.Select(a => a.Role))
+                    .Where(cb => cb.Id == comicBookId)
+                    .SingleOrDefault();
 
             if (comicBook == null)
             {
@@ -26,8 +39,7 @@ namespace ComicBookLibraryManagerWebApp.Controllers
                 ComicBook = comicBook
             };
 
-            // TODO Pass the Context class to the view model "Init" method.
-            viewModel.Init();
+            viewModel.Init(_context);
 
             return View(viewModel);
         }
@@ -39,19 +51,27 @@ namespace ComicBookLibraryManagerWebApp.Controllers
 
             if (ModelState.IsValid)
             {
-                // TODO Add the comic book artist.
+                var ComicBookArtist = new ComicBookArtist()
+                {
+                    ComicBookId = viewModel.ComicBookId,
+                    ArtistId = viewModel.ArtistId,
+                    RoleId = viewModel.RoleId
+                };
+
+                _context.ComicBookArtists.Add(ComicBookArtist);
+                _context.SaveChanges();
 
                 TempData["Message"] = "Your artist was successfully added!";
 
                 return RedirectToAction("Detail", "ComicBooks", new { id = viewModel.ComicBookId });
             }
 
-            // TODO Prepare the view model for the view.
-            // TODO Get the comic book.
-            // Include the "Series" navigation property.
-            viewModel.ComicBook = new ComicBook();
-            // TODO Pass the Context class to the view model "Init" method.
-            viewModel.Init();
+         
+            viewModel.ComicBook = _context.ComicBooks
+                    .Include(cb => cb.Series)
+                    .Where(cb => cb.Id == viewModel.ComicBookId)
+                    .SingleOrDefault();
+            viewModel.Init(_context);
 
             return View(viewModel);
         }
@@ -65,7 +85,12 @@ namespace ComicBookLibraryManagerWebApp.Controllers
 
             // TODO Get the comic book artist.
             // Include the "ComicBook.Series", "Artist", and "Role" navigation properties.
-            var comicBookArtist = new ComicBookArtist();
+            var comicBookArtist = _context.ComicBookArtists
+                .Include(c => c.Artist)
+                .Include(c => c.Role)
+                .Include(c => c.ComicBook.Series)
+                .Where(c => c.Id == (int)id)
+                .SingleOrDefault();
 
             if (comicBookArtist == null)
             {
@@ -78,7 +103,10 @@ namespace ComicBookLibraryManagerWebApp.Controllers
         [HttpPost]
         public ActionResult Delete(int comicBookId, int id)
         {
-            // TODO Delete the comic book artist.
+            // TODO Delete the comic book artist
+            var comicBookArtist = new ComicBookArtist() { Id = id };
+            _context.Entry(comicBookArtist).State = EntityState.Deleted;
+            _context.SaveChanges();
 
             TempData["Message"] = "Your artist was successfully deleted!";
 
@@ -92,20 +120,41 @@ namespace ComicBookLibraryManagerWebApp.Controllers
         /// <param name="viewModel">The view model containing the values to validate.</param>
         private void ValidateComicBookArtist(ComicBookArtistsAddViewModel viewModel)
         {
-            //// If there aren't any "ArtistId" and "RoleId" field validation errors...
-            //if (ModelState.IsValidField("ArtistId") &&
-            //    ModelState.IsValidField("RoleId"))
-            //{
-            //    // Then make sure that this artist and role combination 
-            //    // doesn't already exist for this comic book.
-            //    // TODO Call method to check if this artist and role combination
-            //    // already exists for this comic book.
-            //    if (false)
-            //    {
-            //        ModelState.AddModelError("ArtistId",
-            //            "This artist and role combination already exists for this comic book.");
-            //    }
-            //}
+            // If there aren't any "ArtistId" and "RoleId" field validation errors...
+            if (ModelState.IsValidField("ArtistId") &&
+                ModelState.IsValidField("RoleId"))
+            {
+                // Then make sure that this artist and role combination 
+                // doesn't already exist for this comic book.
+                // TODO Call method to check if this artist and role combination
+                // already exists for this comic book.
+                if (_context.ComicBookArtists
+                    .Any(cba => cba.ComicBookId != viewModel.ComicBookId &&
+                                cba.ArtistId == viewModel.ArtistId &&
+                                cba.RoleId == viewModel.RoleId))
+                                cba.RoleId == viewModel.RoleId))
+                {
+                    ModelState.AddModelError("ArtistId",
+                        "This artist and role combination already exists for this comic book.");
+                }
+            }
+        }
+
+        private bool _disposed = false;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _context.Dispose();
+            }
+
+            _disposed = true;
+
+            base.Dispose(disposing);
         }
     }
 }

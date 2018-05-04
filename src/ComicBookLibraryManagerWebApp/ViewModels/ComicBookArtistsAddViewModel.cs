@@ -1,11 +1,10 @@
-﻿using ComicBookShared.Data;
-using ComicBookShared.Models;
+﻿using ComicBookShared.Models;
+using ComicBookShared.Data;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
+using System.Data.Entity;
 
 namespace ComicBookLibraryManagerWebApp.ViewModels
 {
@@ -35,13 +34,13 @@ namespace ComicBookLibraryManagerWebApp.ViewModels
         /// <summary>
         /// Initializes the view model.
         /// </summary>
-        public void Init()
+        public void Init(Context context)
         {
             ArtistSelectListItems = new SelectList(
-                new List<Artist>(), // TODO Get the artitsts list.
+                context.Artists.OrderBy(a => a.Name).ToList(),
                 "Id", "Name");
             RoleSelectListItems = new SelectList(
-                new List<Role>(), // TODO Get the roles list.
+                context.Roles.OrderBy(r => r.Name).ToList(),
                 "Id", "Name");
         }
     }
