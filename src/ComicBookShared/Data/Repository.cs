@@ -17,20 +17,6 @@ namespace ComicBookShared.Data
             _context = context;
         }
 
-        public IList<Series> GetSeriesList()
-        {
-            return _context.Series
-                .OrderBy(s => s.Title)
-                .ToList();
-        }
-
-        public IList<Artist> GetArtists()
-        {
-            return _context.Artists
-                .OrderBy(a => a.Name)
-                .ToList();
-        }
-
         public IList<Role> GetRoles()
         {
             return _context.Roles
