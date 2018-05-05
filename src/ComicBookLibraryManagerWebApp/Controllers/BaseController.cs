@@ -8,14 +8,16 @@ using System.Web.Mvc;
 namespace ComicBookLibraryManagerWebApp.Controllers
 {
     public abstract class BaseController : Controller
-    {
+    {        
         private bool _disposed = false;
 
-        protected Context Context { get; private set; }
+        protected Context Context = null;
+        protected Repository Repository { get; private set; }
 
         public BaseController()
         {
             Context = new Context();
+            Repository = new Repository(Context);
         }
 
         protected override void Dispose(bool disposing)
